@@ -2,15 +2,13 @@
 
 #include <Interpreters/Context.h>
 #include <Bridge/IBridge.h>
-#include "LibraryBridgeHandlerFactory.h"
-
+#include "CatBoostBridgeHandlerFactory.h"
 
 namespace DB
 {
 
-class LibraryBridge : public IBridge
+class CatBoostBridge : public IBridge
 {
-
 protected:
     std::string bridgeName() const override;
     HandlerFactoryPtr getHandlerFactoryPtr(ContextPtr context) const override;

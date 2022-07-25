@@ -1,4 +1,4 @@
-#include "Handlers.h"
+#include "LibraryBridgeHandlers.h"
 #include "SharedLibraryHandlerFactory.h"
 
 #include <Formats/FormatFactory.h>
@@ -30,6 +30,7 @@ namespace ErrorCodes
 
 namespace
 {
+
     void processError(HTTPServerResponse & response, const std::string & message)
     {
         response.setStatusAndReason(HTTPResponse::HTTP_INTERNAL_SERVER_ERROR);
@@ -65,8 +66,8 @@ namespace
         readVectorBinary(names, buf);
         return names;
     }
-}
 
+}
 
 static void writeData(Block data, OutputFormatPtr format)
 {
@@ -78,8 +79,14 @@ static void writeData(Block data, OutputFormatPtr format)
     executor.execute();
 }
 
+LibraryBridgeRequestHandler::LibraryBridgeRequestHandler(size_t keep_alive_timeout_, ContextPtr context_)
+    : WithContext(context_)
+    , log(&Poco::Logger::get("LibraryBridgeRequestHandler"))
+    , keep_alive_timeout(keep_alive_timeout_)
+{
+}
 
-void LibraryRequestHandler::handleRequest(HTTPServerRequest & request, HTTPServerResponse & response)
+void LibraryBridgeRequestHandler::handleRequest(HTTPServerRequest & request, HTTPServerResponse & response)
 {
     LOG_TRACE(log, "Request URI: {}", request.getURI());
     HTMLForm params(getContext()->getSettingsRef(), request);
@@ -138,13 +145,14 @@ void LibraryRequestHandler::handleRequest(HTTPServerRequest & request, HTTPServe
                 return;
             }
 
+            std::string library_path = params.get("library_path");
+
             if (!params.has("library_settings"))
             {
                 processError(response, "No 'library_settings' in request URL");
                 return;
             }
 
-            std::string library_path = params.get("library_path");
             const auto & settings_string = params.get("library_settings");
 
             LOG_DEBUG(log, "Parsing library settings from binary string");
@@ -202,7 +210,7 @@ void LibraryRequestHandler::handleRequest(HTTPServerRequest & request, HTTPServe
         }
         else if (method == "libDelete")
         {
-            auto deleted = SharedLibraryHandlerFactory::instance().remove(dictionary_id);
+            bool deleted = SharedLibraryHandlerFactory::instance().remove(dictionary_id);
 
             /// Do not throw, a warning is ok.
             if (!deleted)
@@ -301,6 +309,10 @@ void LibraryRequestHandler::handleRequest(HTTPServerRequest & request, HTTPServe
             auto output = FormatFactory::instance().getOutputFormat(FORMAT, out, sample_block, getContext());
             writeData(std::move(input), std::move(output));
         }
+        else
+        {
+            LOG_WARNING(log, "Unknown library method: '{}'", method);
+        }
     }
     catch (...)
     {
@@ -329,8 +341,14 @@ void LibraryRequestHandler::handleRequest(HTTPServerRequest & request, HTTPServe
     }
 }
 
+LibraryBridgeExistsHandler::LibraryBridgeExistsHandler(size_t keep_alive_timeout_, ContextPtr context_)
+    : WithContext(context_)
+    , keep_alive_timeout(keep_alive_timeout_)
+    , log(&Poco::Logger::get("LibraryBridgeExistsHandler"))
+{
+}
 
-void LibraryExistsHandler::handleRequest(HTTPServerRequest & request, HTTPServerResponse & response)
+void LibraryBridgeExistsHandler::handleRequest(HTTPServerRequest & request, HTTPServerResponse & response)
 {
     try
     {
@@ -345,14 +363,11 @@ void LibraryExistsHandler::handleRequest(HTTPServerRequest & request, HTTPServer
 
         std::string dictionary_id = params.get("dictionary_id");
         auto library_handler = SharedLibraryHandlerFactory::instance().get(dictionary_id);
-        String res;
-        if (library_handler)
-            res = "1";
-        else
-            res = "0";
+
+        String res = library_handler ? "1" : "0";
 
         setResponseDefaultHeaders(response, keep_alive_timeout);
-        LOG_TRACE(log, "Senging ping response: {} (dictionary id: {})", res, dictionary_id);
+        LOG_TRACE(log, "Sending ping response: {} (dictionary id: {})", res, dictionary_id);
         response.sendBuffer(res.data(), res.size());
     }
     catch (...)
