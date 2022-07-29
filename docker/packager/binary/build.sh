@@ -93,7 +93,6 @@ $SCAN_WRAPPER ninja $NINJA_FLAGS $BUILD_TARGET
 ls -la ./programs
 
 ccache_status
-ccache --evict-older-than 1d
 
 if [ -n "$MAKE_DEB" ]; then
   # No quotes because I want it to expand to nothing if empty.
@@ -179,7 +178,8 @@ then
     mv "coverity-scan.tgz" /output
 fi
 
-cache_status
+ccache_status
+ccache --evict-older-than 1d
 
 if [ "${CCACHE_DEBUG:-}" == "1" ]
 then
