@@ -9,7 +9,7 @@ from ci_config import CI_CONFIG
 from env_helper import GITHUB_REPOSITORY, GITHUB_RUN_URL
 from github import Github
 from github.Commit import Commit
-from pr_info import SKIP_SIMPLE_CHECK_LABEL
+from pr_info import SKIP_MERGEABLE_CHECK_LABEL
 
 RETRY = 5
 
@@ -82,26 +82,46 @@ def post_labels(gh, pr_info, labels_names):
         pull_request.add_to_labels(label)
 
 
-def fail_simple_check(gh, pr_info, description):
-    if SKIP_SIMPLE_CHECK_LABEL in pr_info.labels:
-        return
+def fail_mergeable_check(gh, pr_info, description):
     commit = get_commit(gh, pr_info.sha)
     commit.create_status(
-        context="Simple Check",
+        context="Mergeable Check",
         description=description,
         state="failure",
         target_url=GITHUB_RUN_URL,
     )
 
 
-def create_simple_check(gh, pr_info):
+def reset_mergeable_check(gh, pr_info, description=""):
     commit = get_commit(gh, pr_info.sha)
-    for status in commit.get_statuses():
-        if "Simple Check" in status.context:
-            return
     commit.create_status(
-        context="Simple Check",
-        description="Skipped",
+        context="Mergeable Check",
+        description=description,
         state="success",
         target_url=GITHUB_RUN_URL,
     )
+
+
+def update_mergeable_check(gh, pr_info):
+    if SKIP_MERGEABLE_CHECK_LABEL in pr_info.labels:
+        return
+
+    required = [
+        "Fast test",
+        "Style Check",
+        "ClickHouse build check",
+        "ClickHouse special build check",
+    ]
+    commit = get_commit(gh, pr_info.sha)
+    checks = {
+        check["context"]:check["state"] for check in filter(
+            lambda check: (check["context"] in required), reversed(commit.get_statuses())
+        )
+    }
+    
+    for name, state in checks:
+        if state != "success":
+            fail_mergeable_check(gh, pr_info, f"{name} failed")
+            return
+        
+    reset_mergeable_check(gh, pr_info)
