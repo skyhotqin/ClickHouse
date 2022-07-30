@@ -114,14 +114,16 @@ def update_mergeable_check(gh, pr_info):
     ]
     commit = get_commit(gh, pr_info.sha)
     checks = {
-        check["context"]:check["state"] for check in filter(
-            lambda check: (check["context"] in required), reversed(commit.get_statuses())
+        check["context"]: check["state"]
+        for check in filter(
+            lambda check: (check["context"] in required),
+            reversed(commit.get_statuses()),
         )
     }
-    
+
     for name, state in checks:
         if state != "success":
             fail_mergeable_check(gh, pr_info, f"{name} failed")
             return
-        
+
     reset_mergeable_check(gh, pr_info)
