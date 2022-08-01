@@ -117,5 +117,5 @@ def update_mergeable_check(gh, pr_info):
         if state != "success":
             fail_mergeable_check(commit, f"{name} failed")
             return
-        
+
     reset_mergeable_check(commit)
