@@ -345,3 +345,10 @@ CI_CONFIG = {
         },
     },
 }  # type: dict
+
+REQUIRED_CHECKS = [
+    "Fast test",
+    "Style Check",
+    "ClickHouse build check",
+    "ClickHouse special build check",
+]

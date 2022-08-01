@@ -5,7 +5,7 @@ import os
 import time
 from typing import Optional
 
-from ci_config import CI_CONFIG
+from ci_config import CI_CONFIG, REQUIRED_CHECKS
 from env_helper import GITHUB_REPOSITORY, GITHUB_RUN_URL
 from github import Github
 from github.Commit import Commit
@@ -82,8 +82,7 @@ def post_labels(gh, pr_info, labels_names):
         pull_request.add_to_labels(label)
 
 
-def fail_mergeable_check(gh, pr_info, description):
-    commit = get_commit(gh, pr_info.sha)
+def fail_mergeable_check(commit, description):
     commit.create_status(
         context="Mergeable Check",
         description=description,
@@ -92,8 +91,7 @@ def fail_mergeable_check(gh, pr_info, description):
     )
 
 
-def reset_mergeable_check(gh, pr_info, description=""):
-    commit = get_commit(gh, pr_info.sha)
+def reset_mergeable_check(commit, description=""):
     commit.create_status(
         context="Mergeable Check",
         description=description,
@@ -106,22 +104,16 @@ def update_mergeable_check(gh, pr_info):
     if SKIP_MERGEABLE_CHECK_LABEL in pr_info.labels:
         return
 
-    required = [
-        "Fast test",
-        "Style Check",
-        "ClickHouse build check",
-        "ClickHouse special build check",
-    ]
     commit = get_commit(gh, pr_info.sha)
     checks = {
         check["context"]:check["state"] for check in filter(
-            lambda check: (check["context"] in required), reversed(commit.get_statuses())
+            lambda check: (check["context"] in REQUIRED_CHECKS), reversed(commit.get_statuses())
         )
     }
     
     for name, state in checks:
         if state != "success":
-            fail_mergeable_check(gh, pr_info, f"{name} failed")
+            fail_mergeable_check(commit, f"{name} failed")
             return
         
-    reset_mergeable_check(gh, pr_info)
+    reset_mergeable_check(commit)

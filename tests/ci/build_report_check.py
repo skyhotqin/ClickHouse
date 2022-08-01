@@ -157,7 +157,7 @@ def main():
 
     logging.info("The next builds are required: %s", ", ".join(needs_data))
 
-    gh = Github(get_best_robot_token())
+    gh = Github(get_best_robot_token(), per_page=100)
     pr_info = PRInfo()
 
     atexit.register(update_mergeable_check, gh, pr_info)

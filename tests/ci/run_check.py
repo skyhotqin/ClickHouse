@@ -228,7 +228,7 @@ if __name__ == "__main__":
     if pr_labels_to_remove:
         remove_labels(gh, pr_info, pr_labels_to_remove)
 
-    reset_mergeable_check(gh, pr_info, "skipped")
+    reset_mergeable_check(commit, "skipped")
 
     if description_error:
         print(
