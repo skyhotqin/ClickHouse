@@ -155,7 +155,9 @@ def main():
             needs_data = json.load(file_handler)
             required_builds = len(needs_data)
 
-    if needs_data is not None and all(i["result"] == "skipped" for i in needs_data.values()):
+    if needs_data is not None and all(
+        i["result"] == "skipped" for i in needs_data.values()
+    ):
         logging.info("All builds are skipped, exiting")
         sys.exit(0)
 
