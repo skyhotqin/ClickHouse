@@ -155,6 +155,10 @@ def main():
             needs_data = json.load(file_handler)
             required_builds = len(needs_data)
 
+    if needs_data is not None and all(i["result"] == "skipped" for i in needs_data.values()):
+        logging.info("All builds are skipped, exiting")
+        sys.exit(0)
+
     logging.info("The next builds are required: %s", ", ".join(needs_data))
 
     gh = Github(get_best_robot_token(), per_page=100)
