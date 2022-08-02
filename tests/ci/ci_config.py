@@ -346,6 +346,7 @@ CI_CONFIG = {
     },
 }  # type: dict
 
+# checks required by Mergeable Check
 REQUIRED_CHECKS = [
     "Fast test",
     "Style Check",
