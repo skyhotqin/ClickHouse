@@ -31,6 +31,7 @@ RUN apt-get update \
 RUN apt-get update \
     && apt-get install \
         bash \
+        bsdmainutils \
         build-essential \
         clang-${LLVM_VERSION} \
         clang-tidy-${LLVM_VERSION} \
